@@ -1,0 +1,5 @@
+Final normal build: :app:assembleDebug :app:testDebugUnitTest — Build finished successfully; 51 passed, 0 skipped, 0 failed.
+Final isolated device suite: :app:connectedDebugAndroidTest -PmonicacareIsolatedQa=true — emulator-5554: 9 PASSED, no failedAndroidTests.
+Final device display: Physical size: 1344x2992; Physical density: 480; no overrides.
+Production package com.monicacare.app still installed; normal debug APK applicationId verified as com.monicacare.app.
+Final test log search: AndroidRuntime.*FATAL|TestRunner.*failed:|lowmemorykiller.*monicacare — No matches found.
