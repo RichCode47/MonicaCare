@@ -12,6 +12,13 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import com.monicacare.app.core.backend.*
+import com.monicacare.app.core.model.AntenatalAppointment
+import com.monicacare.app.core.model.AppointmentStatus
+import com.monicacare.app.feature.account.*
+import kotlinx.coroutines.flow.map
+import kotlinx.serialization.json.*
+
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -41,11 +48,15 @@ fun MonicaCareNavHost(
     modifier: Modifier = Modifier,
     startDestination: String = Screen.Splash.route,
     preferences: OnboardingPreferences? = null,
-    profileRepository: PregnancyProfileRepository? = null
+    profileRepository: PregnancyProfileRepository? = null,
+    backend: BackendContainer? = null
 ) {
     val context = LocalContext.current
     val userPreferencesRepository = preferences ?: remember(context) { UserPreferencesRepository(context) }
-    val pregnancyRepository = profileRepository ?: remember(context) { DataStorePregnancyProfileRepository(context) }
+    val owner = backend?.records?.owner() ?: LOCAL_OWNER
+    val pregnancyRepository = profileRepository ?: remember(context, backend, owner) {
+        backend?.pregnancyRepository(owner) ?: DataStorePregnancyProfileRepository(context)
+    }
     val onboardingViewModel: OnboardingViewModel = androidx.lifecycle.viewmodel.compose.viewModel(
         factory = OnboardingViewModel.Factory(userPreferencesRepository)
     )
@@ -92,7 +103,20 @@ fun MonicaCareNavHost(
 
         composable(Screen.Home.route) {
             val homeViewModel: HomeViewModel = androidx.lifecycle.viewmodel.compose.viewModel(
-                factory = HomeViewModel.Factory(pregnancyRepository)
+                factory = if (backend == null) HomeViewModel.Factory(pregnancyRepository) else HomeViewModel.Factory(
+                    pregnancyRepository,
+                    developmentProvider = backend::developmentForWeek,
+                    appointments = remember(backend, owner) {
+                        backend.records.observe(owner, PrivateTable.APPOINTMENT).map { rows ->
+                            rows.map { row ->
+                                val value = BackendJson.decodeFromJsonElement<AppointmentRecord>(row.payload)
+                                AntenatalAppointment(value.id, value.title, value.provider_name, value.facility_name,
+                                    value.appointment_date, value.appointment_time,
+                                    AppointmentStatus.valueOf(value.status.uppercase()), value.notes)
+                            }
+                        }
+                    }
+                )
             )
             HomeDashboardScreen(
                 viewModel = homeViewModel,
@@ -122,10 +146,12 @@ fun MonicaCareNavHost(
 
         composable(Screen.Journey.route) {
             val journeyViewModel: JourneyViewModel = androidx.lifecycle.viewmodel.compose.viewModel(
-                factory = JourneyViewModel.Factory(pregnancyRepository)
+                factory = if (backend == null) JourneyViewModel.Factory(pregnancyRepository)
+                    else JourneyViewModel.Factory(pregnancyRepository, developmentProvider = backend::developmentForWeek)
             )
             JourneyScreen(
                 viewModel = journeyViewModel,
+                weekContent = backend?.cached?.collectAsStateWithLifecycle()?.value?.weeks.orEmpty(),
                 onNavigateToProfileSetup = {
                     navController.navigate(Screen.ProfileSetup.route) {
                         launchSingleTop = true
@@ -135,25 +161,41 @@ fun MonicaCareNavHost(
         }
 
         composable(Screen.Appointments.route) {
-            AppointmentsScreen()
+            if (backend == null) AppointmentsScreen()
+            else ManagedRecordsScreen(backendViewModel(backend, owner), journal = false)
         }
 
         composable(Screen.HealthJournal.route) {
-            HealthJournalScreen()
+            if (backend == null) HealthJournalScreen()
+            else ManagedRecordsScreen(backendViewModel(backend, owner), journal = true)
         }
 
         composable(Screen.Education.route) {
-            EducationScreen()
+            if (backend == null) EducationScreen()
+            else ManagedEducationScreen(backendViewModel(backend, owner))
         }
 
         composable(Screen.Emergency.route) {
-            EmergencyScreen()
+            EmergencyScreen(
+                profileRepository = pregnancyRepository,
+                contacts = backend?.cached?.collectAsStateWithLifecycle()?.value?.emergencyContacts.orEmpty()
+            )
         }
 
         composable(Screen.Profile.route) {
             ProfileScreen(
-                onNavigateToProfileSetup = { navController.navigate(Screen.ProfileSetup.route) }
+                onNavigateToProfileSetup = { navController.navigate(Screen.ProfileSetup.route) },
+                profileRepository = pregnancyRepository,
+                onNavigateToAccount = if (backend != null) ({ navController.navigate(Screen.Account.route) }) else null
             )
         }
+        composable(Screen.Account.route) {
+            if (backend != null) AccountScreen(backendViewModel(backend, owner)) { navController.popBackStack() }
+        }
+
     }
 }
+
+@Composable
+private fun backendViewModel(backend: BackendContainer, owner: String): BackendViewModel =
+    androidx.lifecycle.viewmodel.compose.viewModel(factory = BackendViewModel.Factory(backend, owner))

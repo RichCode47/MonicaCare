@@ -53,12 +53,14 @@ import com.monicacare.app.core.designsystem.theme.TealContainer
 import com.monicacare.app.core.designsystem.theme.TealSecondary
 import com.monicacare.app.core.model.BabyDevelopment
 import com.monicacare.app.core.model.PregnancyProgress
+import com.monicacare.app.core.backend.WeekRecord
 import com.monicacare.app.core.calculator.PregnancyCalculator
 import com.monicacare.app.core.designsystem.component.CalendarDateRefreshEffect
 
 @Composable
 fun JourneyScreen(
     onNavigateToProfileSetup: () -> Unit,
+    weekContent: List<WeekRecord> = emptyList(),
     viewModel: JourneyViewModel = run {
         val context = LocalContext.current
         val repository = remember(context) { DataStorePregnancyProfileRepository(context) }
@@ -73,7 +75,8 @@ fun JourneyScreen(
     JourneyScreenContent(
         uiState = uiState,
         onNavigateToProfileSetup = onNavigateToProfileSetup,
-        onRetry = { viewModel.loadJourney() }
+        onRetry = { viewModel.loadJourney() },
+        weekContent = weekContent
     )
 }
 
@@ -81,7 +84,8 @@ fun JourneyScreen(
 fun JourneyScreenContent(
     uiState: JourneyUiState,
     onNavigateToProfileSetup: () -> Unit,
-    onRetry: () -> Unit = {}
+    onRetry: () -> Unit = {},
+    weekContent: List<WeekRecord> = emptyList()
 ) {
     val scrollState = rememberScrollState()
 
@@ -138,6 +142,18 @@ fun JourneyScreenContent(
                 }
             }
             if (uiState.hasProfile) {
+                weekContent.firstOrNull { it.week_number == uiState.pregnancyProgress?.currentWeek }?.let { week ->
+                    MonicaCareCard(Modifier.fillMaxWidth()) {
+                        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text(week.title, style = MaterialTheme.typography.titleLarge)
+                            Text(week.baby_development)
+                            if (week.maternal_changes.isNotBlank()) Text(week.maternal_changes)
+                            if (week.educational_guidance.isNotBlank()) Text(week.educational_guidance)
+                            Text("General educational guidance. Your clinician can advise on your individual pregnancy.",
+                                style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                }
                 if (uiState.pregnancyProgress != null) {
                     JourneyTimelineCard(
                         progress = uiState.pregnancyProgress,

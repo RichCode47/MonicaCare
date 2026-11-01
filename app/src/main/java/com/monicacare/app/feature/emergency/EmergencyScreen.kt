@@ -20,9 +20,23 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.monicacare.app.core.backend.EmergencyContactRecord
+import com.monicacare.app.core.data.PregnancyProfileRepository
+import com.monicacare.app.core.data.DataStorePregnancyProfileRepository
+import android.content.Intent
+import android.content.ActivityNotFoundException
+import android.net.Uri
+import kotlinx.coroutines.flow.catch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -41,7 +55,25 @@ private val urgentSymptoms = listOf(
 )
 
 @Composable
-fun EmergencyScreen() {
+fun EmergencyScreen(
+    profileRepository: PregnancyProfileRepository? = null,
+    contacts: List<EmergencyContactRecord> = emptyList()
+) {
+    val context = LocalContext.current
+    val repository = profileRepository ?: remember(context) { DataStorePregnancyProfileRepository(context) }
+    var contactError by remember(repository) { mutableStateOf<String?>(null) }
+    val profileFlow = remember(repository) {
+        repository.pregnancyProfile.catch { contactError = "Your personal emergency contact is unavailable." }
+    }
+    val profile by profileFlow.collectAsStateWithLifecycle(initialValue = null)
+    fun dial(phone: String) {
+        if (!Regex("^\\+?[0-9][0-9 ()-]{2,39}$").matches(phone)) {
+            contactError = "This contact does not have a valid phone number."
+            return
+        }
+        try { context.startActivity(Intent(Intent.ACTION_DIAL, Uri.fromParts("tel", phone, null))) }
+        catch (_: ActivityNotFoundException) { contactError = "No phone dialer is available on this device." }
+    }
     val scrollState = rememberScrollState()
 
     Column(
@@ -83,15 +115,27 @@ fun EmergencyScreen() {
             }
         }
 
-        Button(
-            onClick = { /* Call Emergency Contact */ },
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(containerColor = EmergencyRed),
-            shape = RoundedCornerShape(12.dp)
-        ) {
-            Icon(imageVector = Icons.Default.Call, contentDescription = null)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("Call Emergency Contact: +260 97 1234567")
+        contactError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+        profile?.takeIf { it.emergencyContactPhone.isNotBlank() }?.let { current ->
+            Button(
+                onClick = { dial(current.emergencyContactPhone) },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(containerColor = EmergencyRed),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Icon(imageVector = Icons.Default.Call, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Open dialer: " + current.emergencyContactName.ifBlank { "Personal emergency contact" })
+            }
+        }
+        contacts.forEach { contact ->
+            MonicaCareCard(modifier = Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(16.dp)) {
+                    Text(contact.name, style = MaterialTheme.typography.titleMedium)
+                    Text(contact.location + " • " + contact.category)
+                    OutlinedButton(onClick = { dial(contact.phone_number) }) { Text("Open dialer: " + contact.phone_number) }
+                }
+            }
         }
 
         Text(

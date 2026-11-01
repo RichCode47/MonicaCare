@@ -25,7 +25,13 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.setValue
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.onEach
+import com.monicacare.app.core.data.PregnancyProfileRepository
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -49,11 +55,21 @@ private val settingsItems = listOf(
 
 @Composable
 fun ProfileScreen(
-    onNavigateToProfileSetup: () -> Unit = {}
+    onNavigateToProfileSetup: () -> Unit = {},
+    profileRepository: PregnancyProfileRepository? = null,
+    onNavigateToAccount: (() -> Unit)? = null
 ) {
     val context = LocalContext.current
-    val repository = remember(context) { DataStorePregnancyProfileRepository(context) }
-    val profile by repository.pregnancyProfile.collectAsState(initial = null)
+    val repository = profileRepository ?: remember(context) { DataStorePregnancyProfileRepository(context) }
+    var retry by remember(repository) { mutableIntStateOf(0) }
+    var loading by remember(repository) { mutableStateOf(true) }
+    var error by remember(repository) { mutableStateOf<String?>(null) }
+    val profileFlow = remember(repository, retry) {
+        repository.pregnancyProfile.onEach { loading = false; error = null }.catch {
+            loading = false; error = "Unable to load your profile. Retry before making changes."
+        }
+    }
+    val profile by profileFlow.collectAsStateWithLifecycle(initialValue = null)
     val scrollState = rememberScrollState()
 
     Column(
@@ -71,7 +87,18 @@ fun ProfileScreen(
             color = MaterialTheme.colorScheme.onBackground
         )
 
-        val activeProfile = profile ?: PregnancyProfile()
+        onNavigateToAccount?.let { navigate ->
+            Button(onClick = navigate, modifier = Modifier.fillMaxWidth()) { Text("Account & Sync") }
+        }
+        error?.let { message ->
+            Text(message, color = MaterialTheme.colorScheme.error)
+            OutlinedButton(onClick = { loading = true; error = null; retry++ }) { Text("Retry") }
+        }
+        val activeProfile = profile ?: PregnancyProfile(
+            displayName = if (loading) "Loading profile…" else "No pregnancy profile",
+            lmpDateIso = null, eddDateIso = null, isClinicianConfirmed = false,
+            healthcareFacility = "", emergencyContactName = "", emergencyContactPhone = "", pregnancyNotes = ""
+        )
 
         MonicaCareCard(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(16.dp)) {
@@ -114,6 +141,7 @@ fun ProfileScreen(
 
                 Button(
                     onClick = onNavigateToProfileSetup,
+                    enabled = !loading && error == null,
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(containerColor = RosePinkPrimary),
                     shape = RoundedCornerShape(12.dp)

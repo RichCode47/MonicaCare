@@ -1,0 +1,11 @@
+{
+  "name": "monicacare-backend-tests",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test backend-schema.test.mjs"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.14"
+  }
+}

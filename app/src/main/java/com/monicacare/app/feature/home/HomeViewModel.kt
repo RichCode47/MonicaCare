@@ -14,6 +14,9 @@ import com.monicacare.app.core.model.DailyPregnancyTip
 import com.monicacare.app.core.model.DemonstrationData
 import com.monicacare.app.core.model.PregnancyProfile
 import com.monicacare.app.core.model.PregnancyProgress
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
+import com.monicacare.app.core.model.AppointmentStatus
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -28,7 +31,8 @@ data class HomeUiState(
     val pregnancyProgress: PregnancyProgress? = null,
     val pregnancyProfile: PregnancyProfile? = null,
     val babyDevelopment: BabyDevelopment? = null,
-    val upcomingAppointment: AntenatalAppointment? = DemonstrationData.sampleAppointment,
+    val upcomingAppointment: AntenatalAppointment? = null,
+    val appointmentError: String? = null,
     val dailyTip: DailyPregnancyTip? = DemonstrationData.sampleDailyTip,
     val hasProfile: Boolean = false,
     val errorMessage: String? = null
@@ -37,7 +41,8 @@ data class HomeUiState(
 class HomeViewModel(
     private val repository: PregnancyProfileRepository,
     private val currentDateProvider: () -> LocalDate = { LocalDate.now() },
-    private val developmentProvider: (Int) -> BabyDevelopment? = BabyDevelopmentRepository::getForWeek
+    private val developmentProvider: (Int) -> BabyDevelopment? = BabyDevelopmentRepository::getForWeek,
+    private val appointments: Flow<List<AntenatalAppointment>> = flowOf(emptyList())
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -45,9 +50,24 @@ class HomeViewModel(
 
     private var loadJob: kotlinx.coroutines.Job? = null
 
+    private var appointmentCache: List<AntenatalAppointment> = emptyList()
+
     init {
         loadProfile()
+        viewModelScope.launch {
+            appointments.catch {
+                _uiState.update { it.copy(appointmentError = "Appointment records are unavailable. Open Appointments to retry.") }
+            }.collect { records ->
+                appointmentCache = records
+                _uiState.update { it.copy(upcomingAppointment = nextAppointment(), appointmentError = null) }
+            }
+        }
     }
+
+    private fun nextAppointment(): AntenatalAppointment? = appointmentCache
+        .filter { it.status == AppointmentStatus.UPCOMING &&
+            PregnancyCalculator.parseIsoDate(it.appointmentDate)?.isBefore(currentDateProvider()) != true }
+        .minByOrNull { it.appointmentDate + it.appointmentTime }
 
     fun loadProfile() {
         loadJob?.cancel()
@@ -97,6 +117,7 @@ class HomeViewModel(
     }
 
     fun refreshCalculations() {
+        _uiState.update { it.copy(upcomingAppointment = nextAppointment()) }
         val currentProfile = _uiState.value.pregnancyProfile ?: return
         val currentDate = currentDateProvider()
         val progress = PregnancyCalculator.calculateProgress(currentProfile, currentDate)
@@ -112,11 +133,13 @@ class HomeViewModel(
 
     class Factory(
         private val repository: PregnancyProfileRepository,
-        private val currentDateProvider: () -> LocalDate = { LocalDate.now() }
+        private val currentDateProvider: () -> LocalDate = { LocalDate.now() },
+        private val developmentProvider: (Int) -> BabyDevelopment? = BabyDevelopmentRepository::getForWeek,
+        private val appointments: Flow<List<AntenatalAppointment>> = flowOf(emptyList())
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            return HomeViewModel(repository, currentDateProvider) as T
+            return HomeViewModel(repository, currentDateProvider, developmentProvider, appointments) as T
         }
     }
 }

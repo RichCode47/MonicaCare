@@ -105,11 +105,12 @@ class JourneyViewModel(
 
     class Factory(
         private val repository: PregnancyProfileRepository,
-        private val currentDateProvider: () -> LocalDate = { LocalDate.now() }
+        private val currentDateProvider: () -> LocalDate = { LocalDate.now() },
+        private val developmentProvider: (Int) -> BabyDevelopment? = BabyDevelopmentRepository::getForWeek
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            return JourneyViewModel(repository, currentDateProvider) as T
+            return JourneyViewModel(repository, currentDateProvider, developmentProvider) as T
         }
     }
 }

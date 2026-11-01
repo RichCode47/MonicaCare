@@ -176,6 +176,8 @@ fun HomeDashboardContent(
             Text("Baby development information is unavailable for this stage.")
         }
 
+        uiState.appointmentError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+
         // Upcoming Appointment Card
         uiState.upcomingAppointment?.let { appointment ->
             UpcomingAppointmentCard(

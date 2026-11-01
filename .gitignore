@@ -20,3 +20,7 @@ local.properties
 
 # Local rollback copies; keep the engineering report and test evidence
 /.stabilization/baseline/
+/tools/backend-tests/node_modules/
+/.env
+/.env.*
+!/supabase.env.example

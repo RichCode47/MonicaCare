@@ -1,0 +1,43 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="7" failures="3" errors="0" skipped="0" time="0.000" timestamp="2026-11-01T20:00:01" hostname="localhost">
+  <testsuite name="com.monicacare.app.backend.BackendDeviceTest" tests="6" failures="2" errors="0" skipped="0" time="756.230" timestamp="2026-11-01T20:00:01" hostname="localhost">
+    <properties>
+      <property name="device" value="emulator-5554" />
+    </properties>
+    <testcase name="appointmentValidationAndOfflineSaveWorkWithoutCloudConfiguration" classname="com.monicacare.app.backend.BackendDeviceTest" time="62.509">
+      <failure>java.lang.AssertionError: Failed: assertExists.
+Reason: Expected exactly '1' node but found '2' nodes that satisfy: (Text + InputText + EditableText contains 'Please review the fields and dates before trying again.' (ignoreCase: false))
+Nodes found:
+1) Node #103 at (l=26.0, t=216.0, r=691.0, b=255.0)px
+Text = '[Please review the fields and dates before trying again.]'
+Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+Has 5 siblings
+2) Node #107 at (l=39.0, t=988.0, r=481.0, b=1054.0)px
+Text = '[Please review the fields and dates before trying again.]'
+Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+Has 9 siblings
+
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.assertExists(SemanticsNodeInteraction.kt:125)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.assertExists$default(SemanticsNodeInteraction.kt:124)
+	at com.monicacare.app.backend.BackendDeviceTest.appointmentValidationAndOfflineSaveWorkWithoutCloudConfiguration(BackendDeviceTest.kt:69)
+</failure>
+    </testcase>
+    <testcase name="accountScreenKeepsDeviceModeUsableAndStoresPreferencesOffline" classname="com.monicacare.app.backend.BackendDeviceTest" time="26.805" />
+    <testcase name="encryptedAccountCacheSurvivesStoreReopen" classname="com.monicacare.app.backend.BackendDeviceTest" time="6.343" />
+    <testcase name="appNavigationConnectsOfflineRecordsProfileAndAccount" classname="com.monicacare.app.backend.BackendDeviceTest" time="23.988" />
+    <testcase name="journalSaveAndRemoveAreDeviceOnlyAndRecoverable" classname="com.monicacare.app.backend.BackendDeviceTest" time="15.797" />
+    <testcase name="encryptedSessionRoundTripPreservesDefaultFieldsAndDeletesLocally" classname="com.monicacare.app.backend.BackendDeviceTest" time="620.788">
+      <failure>Test failed with status -1</failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="android-test" tests="1" failures="1" errors="0" skipped="0" time="0.000" timestamp="2026-11-01T20:00:01" hostname="localhost">
+    <properties>
+      <property name="device" value="emulator-5554" />
+    </properties>
+    <testcase name="testRunFailed" classname="android-test" time="0.000">
+      <failure>Test run failed to complete. Expected 16 tests, received 5</failure>
+    </testcase>
+  </testsuite>
+</testsuites>
