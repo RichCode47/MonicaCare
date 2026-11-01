@@ -1,0 +1,17 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="9" failures="0" errors="0" skipped="0" time="0.000" timestamp="2026-11-01T17:59:02" hostname="localhost">
+  <testsuite name="com.monicacare.app.stability.StabilityUiTest" tests="9" failures="0" errors="0" skipped="0" time="93.199" timestamp="2026-11-01T17:59:02" hostname="localhost">
+    <properties>
+      <property name="device" value="emulator-5554" />
+    </properties>
+    <testcase name="resumingScreenRefreshesCalendarCalculations" classname="com.monicacare.app.stability.StabilityUiTest" time="15.555" />
+    <testcase name="onboardingWaitsForPersistenceAndRecoversFromFailure" classname="com.monicacare.app.stability.StabilityUiTest" time="10.194" />
+    <testcase name="savedNavigationStateRestoresSelectedTab" classname="com.monicacare.app.stability.StabilityUiTest" time="7.180" />
+    <testcase name="journeyMissingDevelopmentShowsTimelineAndFailureNeverShowsSetup" classname="com.monicacare.app.stability.StabilityUiTest" time="4.961" />
+    <testcase name="tabsRestoreStacksBackToHomeAndProfileSaveUpdatesBothScreens" classname="com.monicacare.app.stability.StabilityUiTest" time="19.799" />
+    <testcase name="preferenceReadRetryDoesNotCompleteOnboarding" classname="com.monicacare.app.stability.StabilityUiTest" time="6.480" />
+    <testcase name="homeLoadingEmptyAndFailureNeverOverlap" classname="com.monicacare.app.stability.StabilityUiTest" time="7.220" />
+    <testcase name="dashboardLargeFontsKeepBadgesJourneyAndAllJournalActionsReachable" classname="com.monicacare.app.stability.StabilityUiTest" time="16.034" />
+    <testcase name="splashWaitsForInitialPreferencesBeforeChoosingRoute" classname="com.monicacare.app.stability.StabilityUiTest" time="5.776" />
+  </testsuite>
+</testsuites>
